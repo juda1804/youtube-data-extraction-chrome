@@ -1,15 +1,129 @@
 // YouTube to n8n Background Service Worker
 import youtubeDB from './database.js';
 
-// Import testing functions for development
-import('./test-indexeddb.js').then(testModule => {
-  // Expose testing functions globally for console access
-  globalThis.quickTest = testModule.quickTest;
-  globalThis.runAllTests = testModule.runAllTests;
-  console.log('🧪 Testing functions loaded: quickTest(), runAllTests()');
-}).catch(error => {
-  console.log('⚠️ Testing module not available:', error.message);
-});
+// Simple testing functions directly in background for debugging
+async function quickTest() {
+  console.log('🚀 Running quick IndexedDB test...');
+  
+  try {
+    await youtubeDB.initialize();
+    console.log('✅ Database initialized');
+    
+    const stats = await youtubeDB.getStats();
+    console.log(`📊 Current stats: ${stats.totalPosts} posts, ${stats.totalSessions} sessions`);
+    
+    const testPost = {
+      id: `quick_test_${Date.now()}`,
+      channel: 'Quick Test',
+      author: 'Test',
+      content: 'Quick test post',
+      publishedTime: 'hace 1 minuto',
+      likes: '0',
+      images: [],
+      extractedAt: new Date().toISOString(),
+      sourceUrl: 'https://test.com'
+    };
+    
+    const sessionId = await youtubeDB.createSession('quick-test', new Date(), 1);
+    await youtubeDB.savePosts([testPost], sessionId);
+    
+    const newStats = await youtubeDB.getStats();
+    console.log(`📊 After test: ${newStats.totalPosts} posts, ${newStats.totalSessions} sessions`);
+    
+    console.log('✅ Quick test completed successfully!');
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Quick test failed:', error);
+    return false;
+  }
+}
+
+async function runBasicTests() {
+  console.log('🧪 Running basic IndexedDB tests...');
+  console.log('=' .repeat(40));
+  
+  let passedTests = 0;
+  let totalTests = 0;
+  
+  try {
+    // Test 1: Database initialization
+    console.log('\n📋 Test 1: Database Initialization');
+    totalTests++;
+    await youtubeDB.initialize();
+    console.log('✅ Test 1 passed: Database initialized successfully');
+    passedTests++;
+    
+    // Test 2: Get stats
+    console.log('\n📋 Test 2: Get Database Statistics');
+    totalTests++;
+    const stats = await youtubeDB.getStats();
+    console.log(`📊 Database Stats: ${stats.totalPosts} posts, ${stats.totalSessions} sessions`);
+    console.log('✅ Test 2 passed: Statistics retrieved successfully');
+    passedTests++;
+    
+    // Test 3: Create session
+    console.log('\n📋 Test 3: Session Creation');
+    totalTests++;
+    const sessionId = await youtubeDB.createSession('test', new Date(), 60);
+    if (sessionId && sessionId.startsWith('session_')) {
+      console.log(`✅ Test 3 passed: Session created with ID: ${sessionId}`);
+      passedTests++;
+    } else {
+      console.log('❌ Test 3 failed: Session creation failed');
+    }
+    
+    // Test 4: Save test post
+    console.log('\n📋 Test 4: Save Test Post');
+    totalTests++;
+    const testPost = {
+      id: `test_post_${Date.now()}`,
+      channel: 'Test Channel',
+      author: 'Test Author',
+      content: 'Test post content for verification',
+      publishedTime: 'hace 1 hora',
+      likes: '5',
+      images: [],
+      extractedAt: new Date().toISOString(),
+      sourceUrl: 'https://test.com'
+    };
+    
+    await youtubeDB.savePosts([testPost], sessionId);
+    const newStats = await youtubeDB.getStats();
+    console.log(`✅ Test 4 passed: Post saved, total posts: ${newStats.totalPosts}`);
+    passedTests++;
+    
+    // Test 5: Check post exists
+    console.log('\n📋 Test 5: Post Processing Check');
+    totalTests++;
+    const isProcessed = await youtubeDB.isPostProcessed(testPost.id);
+    if (isProcessed) {
+      console.log('✅ Test 5 passed: Post correctly marked as processed');
+      passedTests++;
+    } else {
+      console.log('❌ Test 5 failed: Post not found in database');
+    }
+    
+  } catch (error) {
+    console.error('❌ Test suite failed with error:', error);
+  }
+  
+  // Final results
+  console.log('\n' + '=' .repeat(40));
+  console.log(`🏆 Test Results: ${passedTests}/${totalTests} tests passed`);
+  
+  if (passedTests === totalTests) {
+    console.log('🎉 ALL TESTS PASSED! IndexedDB implementation is working correctly.');
+  } else {
+    console.log(`⚠️ ${totalTests - passedTests} tests failed. Please review the implementation.`);
+  }
+  
+  return { passed: passedTests, total: totalTests, success: passedTests === totalTests };
+}
+
+// Expose testing functions globally
+globalThis.quickTest = quickTest;
+globalThis.runBasicTests = runBasicTests;
 
 // Expose for debugging in service worker console
 globalThis.youtubeDB = youtubeDB;
@@ -809,4 +923,10 @@ globalThis.youtubeDB = youtubeDB;
   console.log('💡 Check this console for webhook requests and n8n communication');
   console.log('🔧 Open extension popup to configure webhook URL');
   console.log('📊 César Langreo scraping system ready');
+  console.log('');
+  console.log('🧪 Testing functions available:');
+  console.log('  • youtubeDB.initialize() - Initialize database');
+  console.log('  • quickTest() - Run quick functionality test');
+  console.log('  • runBasicTests() - Run 5 basic tests');
+  console.log('  • youtubeDB.getStats() - Show database statistics');
 })();
