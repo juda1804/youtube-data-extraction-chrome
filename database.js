@@ -280,7 +280,7 @@ class YouTubeDB {
     const index = store.index('by-extracted-date');
     
     const oldPostKeys = await index.getAllKeys(
-      IDBKeyRange.upperBound(cutoffDate.toISOString())
+      window.IDBKeyRange.upperBound(cutoffDate.toISOString())
     );
     
     for (const key of oldPostKeys) {
