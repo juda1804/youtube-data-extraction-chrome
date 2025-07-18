@@ -121,9 +121,81 @@ async function runBasicTests() {
   return { passed: passedTests, total: totalTests, success: passedTests === totalTests };
 }
 
+// Testing function for cache summary and UI
+async function testCacheSummary() {
+  console.log('🧪 Testing Cache Summary & UI...');
+  
+  try {
+    // First ensure we have some test data
+    await youtubeDB.initialize();
+    
+    // Create test data if none exists
+    const stats = await youtubeDB.getStats();
+    if (stats.totalPosts === 0) {
+      console.log('📝 Creating test data...');
+      
+      const testPosts = [
+        {
+          id: 'test_cache_1',
+          channel: 'César Langreo',
+          author: 'César Langreo',
+          content: 'Test post for cache summary verification',
+          publishedTime: 'hace 1 hora',
+          likes: '5',
+          images: [],
+          extractedAt: new Date().toISOString(),
+          sourceUrl: 'https://test.com'
+        },
+        {
+          id: 'test_cache_2',
+          channel: 'César Langreo', 
+          author: 'César Langreo',
+          content: 'Another test post for UI testing',
+          publishedTime: 'hace 2 horas',
+          likes: '8',
+          images: [],
+          extractedAt: new Date().toISOString(),
+          sourceUrl: 'https://test.com'
+        }
+      ];
+      
+      const sessionId = await youtubeDB.createSession('ui-test', new Date(), 60);
+      await youtubeDB.savePosts(testPosts, sessionId);
+      console.log('✅ Test data created');
+    }
+    
+    // Test the getDBStats function
+    console.log('🔍 Testing getDBStats() function...');
+    const dbStats = await getDBStats();
+    
+    console.log('📊 getDBStats() result:');
+    console.log(`  ✓ success: ${dbStats.success}`);
+    console.log(`  ✓ cacheSize: ${dbStats.cacheSize}`);
+    console.log(`  ✓ maxSize: ${dbStats.maxSize}`);
+    console.log(`  ✓ allIds: ${dbStats.allIds?.length} items`);
+    console.log(`  ✓ sampleIds: ${dbStats.sampleIds?.length} items`);
+    console.log(`  ✓ totalSessions: ${dbStats.totalSessions}`);
+    console.log(`  ✓ databaseSize: ${dbStats.databaseSize}`);
+    
+    if (dbStats.success && dbStats.cacheSize !== undefined && dbStats.allIds) {
+      console.log('✅ Cache Summary Test PASSED');
+      console.log('💡 Now test in popup: click extension icon → "📊 Show Info"');
+      return true;
+    } else {
+      console.log('❌ Cache Summary Test FAILED');
+      return false;
+    }
+    
+  } catch (error) {
+    console.error('❌ Cache Summary Test ERROR:', error);
+    return false;
+  }
+}
+
 // Expose testing functions globally
 globalThis.quickTest = quickTest;
 globalThis.runBasicTests = runBasicTests;
+globalThis.testCacheSummary = testCacheSummary;
 
 // Expose for debugging in service worker console
 globalThis.youtubeDB = youtubeDB;
@@ -954,5 +1026,6 @@ globalThis.youtubeDB = youtubeDB;
   console.log('  • youtubeDB.initialize() - Initialize database');
   console.log('  • quickTest() - Run quick functionality test');
   console.log('  • runBasicTests() - Run 5 basic tests');
+  console.log('  • testCacheSummary() - Test cache summary & UI fix');
   console.log('  • youtubeDB.getStats() - Show database statistics');
 })();
