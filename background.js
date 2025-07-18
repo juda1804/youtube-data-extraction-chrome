@@ -403,7 +403,7 @@
     try {
       if (enabled) {
         // Validate interval
-        const interval = Math.max(5, Math.min(1440, intervalMinutes || 60));
+        const interval = Math.max(1, Math.min(1440, intervalMinutes || 60));
         
         // Clear existing alarm first
         await chrome.alarms.clear('scrapeCesarLangreo');

@@ -7,7 +7,7 @@ A powerful Chrome extension that captures YouTube notifications and scrapes spec
 ### ✨ Core Functionality
 - **Real-time YouTube notification monitoring** - Captures notifications as they appear
 - **César Langreo posts scraping** - Automated extraction of community posts
-- **Configurable auto-scraping** - Custom intervals from 5 minutes to 24 hours
+- **Configurable auto-scraping** - Custom intervals from 1 minute to 24 hours
 - **Smart tab management** - Optimized 1-minute mode with tab reuse
 - **Webhook integration** - Seamless n8n workflow integration
 - **Duplicate prevention** - Intelligent filtering to avoid repeated data
@@ -20,7 +20,7 @@ A powerful Chrome extension that captures YouTube notifications and scrapes spec
 ### ⚙️ Configuration Options
 - **Webhook URL** - Your n8n webhook endpoint
 - **Enable/Disable** - Toggle extension functionality
-- **Auto-scraping intervals** - 5 min to 1440 min (24 hours)
+- **Auto-scraping intervals** - 1 min to 1440 min (24 hours)
 - **Manual scraping** - On-demand content extraction
 
 ## 📦 Installation
@@ -180,7 +180,7 @@ A powerful Chrome extension that captures YouTube notifications and scrapes spec
 
 #### Auto-scraping not triggering
 - Check if alarms permission is granted
-- Verify interval is set correctly (5-1440 minutes)
+- Verify interval is set correctly (1-1440 minutes)
 - Background script must remain active
 
 ### Debug Commands
@@ -191,6 +191,13 @@ chrome.alarms.getAll().then(console.log); // View active alarms
 ```
 
 ## 📝 Configuration Examples
+
+### Ultra-fast monitoring (1-minute optimized)
+```
+Interval: 1 minute
+Use case: Real-time monitoring
+Resource usage: Optimized (tab reuse)
+```
 
 ### High-frequency monitoring (Testing)
 ```
@@ -211,13 +218,6 @@ Resource usage: Medium
 Interval: 1440 minutes (24 hours)
 Use case: Daily summaries
 Resource usage: Low
-```
-
-### Ultra-fast monitoring (1-minute optimized)
-```
-Interval: 1 minute
-Use case: Real-time monitoring
-Resource usage: Optimized (tab reuse)
 ```
 
 ## 🤝 Contributing
@@ -243,7 +243,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### v1.0.0 (Current)
 - ✅ Real-time YouTube notification monitoring
 - ✅ César Langreo posts scraping
-- ✅ Configurable auto-scraping intervals (5-1440 min)
+- ✅ Configurable auto-scraping intervals (1-1440 min)
 - ✅ Optimized 1-minute mode with tab reuse
 - ✅ Webhook testing and configuration
 - ✅ Duplicate prevention system

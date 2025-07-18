@@ -289,9 +289,9 @@
       const interval = parseInt(scrapingIntervalInput.value);
       
       // Validate interval
-      if (interval < 5 || interval > 1440) {
-        showScrapingStatus('Invalid interval. Must be between 5 and 1440 minutes.', 'error');
-        scrapingIntervalInput.value = Math.max(5, Math.min(1440, interval || 60));
+      if (interval < 1 || interval > 1440) {
+        showScrapingStatus('Invalid interval. Must be between 1 and 1440 minutes.', 'error');
+        scrapingIntervalInput.value = Math.max(1, Math.min(1440, interval || 60));
         return;
       }
       
@@ -388,7 +388,7 @@
   console.log('   1. Real-time YouTube notification monitoring');
   console.log('   2. César Langreo posts scraping (manual + configurable auto-scraping)');
   console.log('   3. Webhook testing and configuration');
-  console.log('   4. Configurable scraping intervals (5 min to 24 hours)');
+  console.log('   4. Configurable scraping intervals (1 min to 24 hours)');
   console.log('   5. Check extension background console for scraping activity');
   console.log('🎯 Configure webhook URL to enable n8n integration');
 })();
