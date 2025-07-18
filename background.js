@@ -1,6 +1,19 @@
 // YouTube to n8n Background Service Worker
 import youtubeDB from './database.js';
 
+// Import testing functions for development
+import('./test-indexeddb.js').then(testModule => {
+  // Expose testing functions globally for console access
+  globalThis.quickTest = testModule.quickTest;
+  globalThis.runAllTests = testModule.runAllTests;
+  console.log('🧪 Testing functions loaded: quickTest(), runAllTests()');
+}).catch(error => {
+  console.log('⚠️ Testing module not available:', error.message);
+});
+
+// Expose for debugging in service worker console
+globalThis.youtubeDB = youtubeDB;
+
 (() => {
   'use strict';
 

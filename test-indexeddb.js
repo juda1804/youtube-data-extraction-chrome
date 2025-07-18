@@ -303,9 +303,12 @@ async function quickTest() {
 }
 
 // Make functions available globally for console testing
-window.runAllTests = runAllTests;
-window.quickTest = quickTest;
-window.youtubeDB = youtubeDB;
+globalThis.runAllTests = runAllTests;
+globalThis.quickTest = quickTest;
+globalThis.youtubeDB = youtubeDB;
+
+// Export for module imports
+export { runAllTests, quickTest };
 
 console.log('🧪 IndexedDB Testing loaded!');
 console.log('📋 Available commands:');
