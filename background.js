@@ -845,7 +845,33 @@ globalThis.youtubeDB = youtubeDB;
     try {
       await youtubeDB.initialize();
       const stats = await youtubeDB.getStats();
-      return { success: true, stats };
+      
+      // Extract post IDs for popup compatibility
+      const allIds = stats.recentPosts.map(post => post.id);
+      const sampleIds = allIds.slice(0, 5); // Last 5 posts
+      
+      // Get all posts if we need complete list
+      let allPostIds = allIds;
+      if (stats.totalPosts > 10) {
+        // Get all posts for complete list
+        const allPosts = await youtubeDB.db.getAll('posts');
+        allPostIds = allPosts.map(post => post.id);
+      }
+      
+      return { 
+        success: true, 
+        // Legacy format for popup compatibility
+        cacheSize: stats.totalPosts,
+        maxSize: 'unlimited',
+        allIds: allPostIds,
+        sampleIds: sampleIds,
+        // Additional IndexedDB stats
+        totalSessions: stats.totalSessions,
+        lastCleanup: stats.lastCleanup,
+        databaseSize: stats.databaseSize,
+        // Raw stats for advanced debugging
+        rawStats: stats
+      };
     } catch (error) {
       console.error('Error getting database stats:', error);
       return { success: false, error: error.message };

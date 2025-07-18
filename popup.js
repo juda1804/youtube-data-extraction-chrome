@@ -415,13 +415,14 @@
           <div style="margin-bottom: 8px;">
             <strong>📊 Cache Summary:</strong><br>
             <span style="color: #0066cc;">Stored: ${response.cacheSize}/${response.maxSize} posts</span><br>
-            <span style="color: #666; font-size: 10px;">Cache persists between sessions</span>
+            <span style="color: #666; font-size: 10px;">Sessions: ${response.totalSessions || 0} | Database: ${response.databaseSize}</span><br>
+            <span style="color: #888; font-size: 9px;">Cache persists between sessions</span>
           </div>
           
           <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-bottom: 8px;">
-            <div style="cursor: pointer; user-select: none; font-weight: bold; color: #333;" onclick="toggleSection('recent-ids')">
+            <div style="cursor: pointer; user-select: none; font-weight: bold; color: #333;" onclick="window.toggleSection('recent-ids')">
               📋 Recent Posts (${recentIds.length}) 
-              <span id="recent-toggle" style="float: right;">▼</span>
+              <span id="recent-toggle" style="float: right;">▶</span>
             </div>
             <div id="recent-ids" style="display: none; margin-top: 5px; max-height: 80px; overflow-y: auto; background: #fff; border: 1px solid #eee; padding: 5px; border-radius: 3px;">
               ${recentIds.length > 0 ? 
@@ -438,7 +439,7 @@
           
           ${response.cacheSize > 5 ? `
             <div style="border-top: 1px solid #ddd; padding-top: 8px;">
-              <div style="cursor: pointer; user-select: none; font-weight: bold; color: #333;" onclick="toggleSection('all-ids')">
+              <div style="cursor: pointer; user-select: none; font-weight: bold; color: #333;" onclick="window.toggleSection('all-ids')">
                 🗂️ All Cached Posts (${response.cacheSize}) 
                 <span id="all-toggle" style="float: right;">▶</span>
               </div>
