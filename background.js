@@ -6,14 +6,20 @@
   const STORAGE_KEYS = {
     WEBHOOK_URL: 'n8n_webhook_url',
     ENABLED: 'extension_enabled',
-    LAST_SUCCESS: 'last_success_timestamp'
+    LAST_SUCCESS: 'last_success_timestamp',
+    AUTO_SCRAPING: 'auto_scraping_enabled',
+    SCRAPING_INTERVAL: 'scraping_interval_minutes',
+    LAST_SCRAPING: 'last_scraping_time'
   };
 
   // Default configuration
   const DEFAULT_CONFIG = {
     [STORAGE_KEYS.ENABLED]: true,
     [STORAGE_KEYS.WEBHOOK_URL]: '',
-    [STORAGE_KEYS.LAST_SUCCESS]: null
+    [STORAGE_KEYS.LAST_SUCCESS]: null,
+    [STORAGE_KEYS.AUTO_SCRAPING]: false,
+    [STORAGE_KEYS.SCRAPING_INTERVAL]: 60,
+    [STORAGE_KEYS.LAST_SCRAPING]: null
   };
 
   // Track César Langreo tab for 1-minute mode
@@ -75,6 +81,12 @@
       return true; // Indicates async response
     } else if (message.action === 'toggle_auto_scraping') {
       toggleAutoScraping(message.enabled, message.intervalMinutes).then(sendResponse);
+      return true; // Indicates async response
+    } else if (message.action === 'clear_cache') {
+      clearProcessedPostsCache().then(sendResponse);
+      return true; // Indicates async response
+    } else if (message.action === 'get_cache_info') {
+      getCacheInfo().then(sendResponse);
       return true; // Indicates async response
     }
   });
@@ -167,7 +179,9 @@
   // Get current configuration
   async function getConfiguration() {
     try {
-      const stored = await chrome.storage.local.get(Object.keys(DEFAULT_CONFIG));
+      // Get all storage keys, not just DEFAULT_CONFIG keys
+      const allKeys = Object.values(STORAGE_KEYS);
+      const stored = await chrome.storage.local.get(allKeys);
       return { ...DEFAULT_CONFIG, ...stored };
     } catch (error) {
       console.error('Error getting configuration:', error);
@@ -343,6 +357,17 @@
   function extractPostsData() {
     const posts = [];
     
+    // Simple hash function for consistent IDs
+    function simpleHash(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      return Math.abs(hash).toString(36);
+    }
+    
     try {
       // Wait for content to be fully loaded
       const postElements = document.querySelectorAll('ytd-backstage-post-renderer, ytd-post-renderer');
@@ -365,7 +390,9 @@
             .filter(src => src && !src.includes('data:') && src.includes('http'));
           
           if (content || author) {
-            const postId = `cesar_langreo_${Date.now()}_${index}_${content.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '')}`;
+            // Create deterministic ID based on stable content (not timestamp)
+            const contentForId = `${author}_${content.substring(0, 50)}_${time}`;
+            const postId = `cesar_langreo_${simpleHash(contentForId)}`;
             
             posts.push({
               id: postId,
@@ -427,8 +454,8 @@
       
       // Save the settings
       await chrome.storage.local.set({ 
-        auto_scraping_enabled: enabled,
-        scraping_interval_minutes: intervalMinutes || 60
+        [STORAGE_KEYS.AUTO_SCRAPING]: enabled,
+        [STORAGE_KEYS.SCRAPING_INTERVAL]: intervalMinutes || 60
       });
       
       return { success: true, enabled: enabled };
@@ -456,9 +483,9 @@
   // Initialize auto-scraping based on saved settings
   async function initializeAutoScraping() {
     try {
-      const config = await chrome.storage.local.get(['auto_scraping_enabled', 'scraping_interval_minutes']);
-      if (config.auto_scraping_enabled) {
-        const interval = config.scraping_interval_minutes || 60;
+      const config = await chrome.storage.local.get([STORAGE_KEYS.AUTO_SCRAPING, STORAGE_KEYS.SCRAPING_INTERVAL]);
+      if (config[STORAGE_KEYS.AUTO_SCRAPING]) {
+        const interval = config[STORAGE_KEYS.SCRAPING_INTERVAL] || 60;
         await toggleAutoScraping(true, interval);
         const intervalText = formatIntervalText(interval);
         console.log(`🔄 Auto-scraping restored from settings (every ${intervalText})`);
@@ -482,7 +509,20 @@
       const stored = await chrome.storage.local.get(['processed_posts']);
       const processedPosts = stored.processed_posts || [];
       
-      return posts.filter(post => !processedPosts.includes(post.id));
+      console.log(`🗂️ Cached posts: ${processedPosts.length} IDs`);
+      console.log(`📋 Current posts: ${posts.length} found`);
+      
+      const newPosts = posts.filter(post => !processedPosts.includes(post.id));
+      
+      console.log(`🆕 New posts after filtering: ${newPosts.length}`);
+      if (newPosts.length > 0) {
+        console.log('🆔 New post IDs:', newPosts.map(p => p.id));
+      }
+      if (processedPosts.length > 0) {
+        console.log('💾 Sample cached IDs:', processedPosts.slice(-3));
+      }
+      
+      return newPosts;
     } catch (error) {
       console.error('Error filtering new posts:', error);
       return posts; // Return all posts if error
@@ -501,7 +541,17 @@
       // Keep only last 100 IDs to prevent storage bloat
       const trimmedProcessed = updatedProcessed.slice(-100);
       
+      console.log(`💾 Saving processed posts:`);
+      console.log(`   📝 Adding ${newIds.length} new IDs`);
+      console.log(`   📊 Total unique: ${updatedProcessed.length} → ${trimmedProcessed.length} (after trim)`);
+      console.log(`   🆔 New IDs being saved:`, newIds);
+      
       await chrome.storage.local.set({ processed_posts: trimmedProcessed });
+      
+      // Verify save worked
+      const verification = await chrome.storage.local.get(['processed_posts']);
+      console.log(`✅ Save verified: ${verification.processed_posts?.length || 0} IDs in storage`);
+      
     } catch (error) {
       console.error('Error saving processed posts:', error);
     }
@@ -562,6 +612,44 @@
       });
     } catch (error) {
       console.error('Error updating last scraping time:', error);
+    }
+  }
+
+  // Clear processed posts cache
+  async function clearProcessedPostsCache() {
+    try {
+      const before = await chrome.storage.local.get(['processed_posts']);
+      await chrome.storage.local.remove(['processed_posts']);
+      
+      console.log(`🗑️ Cache cleared: removed ${before.processed_posts?.length || 0} cached post IDs`);
+      
+      return { 
+        success: true, 
+        message: `Cache cleared: ${before.processed_posts?.length || 0} entries removed` 
+      };
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Get cache information
+  async function getCacheInfo() {
+    try {
+      const stored = await chrome.storage.local.get(['processed_posts']);
+      const processedPosts = stored.processed_posts || [];
+      
+      return {
+        success: true,
+        cacheSize: processedPosts.length,
+        maxSize: 100,
+        sampleIds: processedPosts.slice(-5), // Last 5 IDs
+        oldestId: processedPosts[0] || null,
+        newestId: processedPosts[processedPosts.length - 1] || null
+      };
+    } catch (error) {
+      console.error('Error getting cache info:', error);
+      return { success: false, error: error.message };
     }
   }
 

@@ -20,6 +20,11 @@
   const intervalGroup = document.getElementById('interval-group');
   const lastScrapeElement = document.getElementById('last-scrape');
   const scrapingStatusElement = document.getElementById('scraping-status');
+  
+  // Cache management elements
+  const cacheInfoButton = document.getElementById('cache-info-btn');
+  const clearCacheButton = document.getElementById('clear-cache-btn');
+  const cacheInfoElement = document.getElementById('cache-info');
 
   // Configuration keys (must match background.js)
   const STORAGE_KEYS = {
@@ -64,6 +69,8 @@
     scrapeNowButton.addEventListener('click', handleScrapeNow);
     autoScrapingCheckbox.addEventListener('change', handleAutoScrapingToggle);
     scrapingIntervalInput.addEventListener('change', handleIntervalChange);
+    cacheInfoButton.addEventListener('click', handleCacheInfo);
+    clearCacheButton.addEventListener('click', handleClearCache);
     
     // Enable/disable buttons based on webhook URL
     webhookUrlInput.addEventListener('input', () => {
@@ -261,15 +268,7 @@
       if (response.success) {
         const intervalText = formatIntervalText(interval);
         showScrapingStatus(`Auto-scraping ${enabled ? `enabled (${intervalText})` : 'disabled'}`, 'success');
-        
-        // Save the settings
-        await chrome.runtime.sendMessage({
-          action: 'update_config',
-          config: { 
-            [STORAGE_KEYS.AUTO_SCRAPING]: enabled,
-            [STORAGE_KEYS.SCRAPING_INTERVAL]: interval
-          }
-        });
+        // Note: toggle_auto_scraping already saves the settings, no need for additional update_config
       } else {
         showScrapingStatus(`Error: ${response.error}`, 'error');
         // Revert checkbox if failed
@@ -380,6 +379,62 @@
       scrapeNowButton.textContent = '📊 Scrape Now';
       const hasUrl = webhookUrlInput.value.trim().length > 0;
       scrapeNowButton.disabled = !hasUrl;
+    }
+  }
+
+  // Handle cache info button click
+  async function handleCacheInfo() {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'get_cache_info' });
+      
+      if (response.success) {
+        const info = `
+          <strong>Cache Status:</strong><br>
+          📊 Stored: ${response.cacheSize}/${response.maxSize} posts<br>
+          🆔 Newest: ${response.newestId ? response.newestId.substring(0, 20) + '...' : 'None'}<br>
+          📅 Sample IDs: ${response.sampleIds.length} recent entries
+        `;
+        
+        cacheInfoElement.innerHTML = info;
+        cacheInfoElement.style.display = 'block';
+        
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+          cacheInfoElement.style.display = 'none';
+        }, 10000);
+      } else {
+        showScrapingStatus(`Cache info error: ${response.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error getting cache info:', error);
+      showScrapingStatus('Error getting cache info', 'error');
+    }
+  }
+
+  // Handle clear cache button click
+  async function handleClearCache() {
+    try {
+      // Confirm action
+      if (!confirm('⚠️ Clear cache?\n\nThis will mark all posts as "new" on next scraping.\nDuplicates may be sent to n8n.')) {
+        return;
+      }
+      
+      const response = await chrome.runtime.sendMessage({ action: 'clear_cache' });
+      
+      if (response.success) {
+        showScrapingStatus(response.message, 'success');
+        cacheInfoElement.style.display = 'none';
+        
+        // Update cache info if it was visible
+        setTimeout(() => {
+          handleCacheInfo();
+        }, 1000);
+      } else {
+        showScrapingStatus(`Clear cache error: ${response.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      showScrapingStatus('Error clearing cache', 'error');
     }
   }
 
