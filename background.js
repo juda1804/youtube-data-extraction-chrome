@@ -177,14 +177,18 @@ async function testCacheSummary() {
     console.log(`  ✓ totalSessions: ${dbStats.totalSessions}`);
     console.log(`  ✓ databaseSize: ${dbStats.databaseSize}`);
     
-    if (dbStats.success && dbStats.cacheSize !== undefined && dbStats.allIds) {
-      console.log('✅ Cache Summary Test PASSED');
-      console.log('💡 Now test in popup: click extension icon → "📊 Show Info"');
-      return true;
-    } else {
-      console.log('❌ Cache Summary Test FAILED');
-      return false;
-    }
+         if (dbStats.success && dbStats.cacheSize !== undefined && dbStats.allIds) {
+       console.log('✅ Cache Summary Test PASSED');
+       console.log('💡 Now test in popup:');
+       console.log('  1. Click extension icon');
+       console.log('  2. Click "📊 Show Info" - should show real numbers');
+       console.log('  3. Click "📋 Recent Posts" - should expand (CSP-compliant)');
+       console.log('  4. Click "🗂️ All Cached Posts" - should expand');
+       return true;
+     } else {
+       console.log('❌ Cache Summary Test FAILED');
+       return false;
+     }
     
   } catch (error) {
     console.error('❌ Cache Summary Test ERROR:', error);
