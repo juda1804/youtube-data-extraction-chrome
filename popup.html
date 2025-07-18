@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to n8n</title>
+    <style>
+        body {
+            width: 350px;
+            min-height: 400px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .status.enabled {
+            background: #e8f5e8;
+            color: #2d5d2d;
+        }
+
+        .status.disabled {
+            background: #ffeaea;
+            color: #cc0000;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #4285f4;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background: #4285f4;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3367d6;
+        }
+
+        .btn-secondary {
+            background: #f1f3f4;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e8eaed;
+        }
+
+        .btn-test {
+            background: #34a853;
+            color: white;
+        }
+
+        .btn-test:hover {
+            background: #2d8e47;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .last-success {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .instructions ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin: 3px 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: #666;
+        }
+
+        .error {
+            background: #ffeaea;
+            color: #cc0000;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2d5d2d;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>YouTube to n8n</h1>
+        <p>Capture YouTube notifications and send to n8n</p>
+    </div>
+
+    <div id="status" class="status">
+        <div class="status-indicator"></div>
+        <span id="status-text">Loading...</span>
+    </div>
+
+    <div class="instructions">
+        <p><strong>Setup Instructions:</strong></p>
+        <ul>
+            <li>Create a webhook in n8n</li>
+            <li>Copy the webhook URL below</li>
+            <li>Enable the extension</li>
+            <li>Visit YouTube and notifications will be sent automatically</li>
+        </ul>
+    </div>
+
+    <!-- César Langreo Scraping Section -->
+    <div class="scraping-section">
+        <h3 style="margin: 20px 0 10px 0; font-size: 16px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
+            🎯 César Langreo Posts
+        </h3>
+        
+        <div class="scraping-info" style="background: #f0f8ff; padding: 10px; border-radius: 4px; font-size: 12px; color: #0066cc; margin-bottom: 15px;">
+            <p style="margin: 0;"><strong>Target:</strong> https://www.youtube.com/c/CésarLangreo/posts</p>
+            <p style="margin: 5px 0 0 0;" id="last-scrape">Last scraping: Never</p>
+        </div>
+
+        <div class="scraping-controls" style="display: flex; gap: 8px; margin-bottom: 15px;">
+            <button id="scrape-now-btn" class="btn-secondary" style="flex: 1;">
+                📊 Scrape Now
+            </button>
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="auto-scraping" />
+                <label for="auto-scraping">Enable auto-scraping</label>
+            </div>
+        </div>
+
+        <div class="form-group" id="interval-group" style="margin-left: 20px; display: none;">
+            <label for="scraping-interval" style="font-size: 12px; color: #666;">Scraping interval (minutes):</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="number" id="scraping-interval" min="5" max="1440" value="60" 
+                       style="width: 80px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;" />
+                <span style="font-size: 12px; color: #666;">minutes</span>
+            </div>
+            <div style="font-size: 11px; color: #888; margin-top: 3px;">
+                Range: 5 minutes to 24 hours (1440 min)
+            </div>
+        </div>
+
+        <div id="scraping-status" style="display: none; padding: 8px; border-radius: 4px; font-size: 12px; margin-top: 10px;"></div>
+    </div>
+
+    <div class="form-group">
+        <label for="webhook-url">n8n Webhook URL:</label>
+        <input type="url" id="webhook-url" placeholder="https://your-n8n-instance.com/webhook/your-webhook-id" />
+    </div>
+
+    <div class="form-group">
+        <div class="checkbox-group">
+            <input type="checkbox" id="enabled" />
+            <label for="enabled">Enable notification monitoring</label>
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button id="save-btn" class="btn-primary">Save</button>
+        <button id="test-btn" class="btn-test">Test</button>
+    </div>
+
+    <div id="message"></div>
+
+    <div class="last-success" id="last-success"></div>
+
+    <div class="loading" id="loading">
+        <p>Processing...</p>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
