@@ -385,23 +385,80 @@
   // Handle cache info button click
   async function handleCacheInfo() {
     try {
+      // Toggle visibility if already shown
+      if (cacheInfoElement.style.display === 'block') {
+        cacheInfoElement.style.display = 'none';
+        cacheInfoButton.textContent = '📊 Show Info';
+        return;
+      }
+      
+      cacheInfoButton.textContent = '📊 Hide Info';
+      
       const response = await chrome.runtime.sendMessage({ action: 'get_cache_info' });
       
       if (response.success) {
+        const processedIds = response.allIds || [];
+        const recentIds = response.sampleIds || [];
+        
+        // Create collapsible sections
         const info = `
-          <strong>Cache Status:</strong><br>
-          📊 Stored: ${response.cacheSize}/${response.maxSize} posts<br>
-          🆔 Newest: ${response.newestId ? response.newestId.substring(0, 20) + '...' : 'None'}<br>
-          📅 Sample IDs: ${response.sampleIds.length} recent entries
+          <div style="margin-bottom: 8px;">
+            <strong>📊 Cache Summary:</strong><br>
+            <span style="color: #0066cc;">Stored: ${response.cacheSize}/${response.maxSize} posts</span><br>
+            <span style="color: #666; font-size: 10px;">Cache persists between sessions</span>
+          </div>
+          
+          <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-bottom: 8px;">
+            <div style="cursor: pointer; user-select: none; font-weight: bold; color: #333;" onclick="toggleSection('recent-ids')">
+              📋 Recent Posts (${recentIds.length}) 
+              <span id="recent-toggle" style="float: right;">▼</span>
+            </div>
+            <div id="recent-ids" style="display: none; margin-top: 5px; max-height: 80px; overflow-y: auto; background: #fff; border: 1px solid #eee; padding: 5px; border-radius: 3px;">
+              ${recentIds.length > 0 ? 
+                recentIds.map((id, idx) => `
+                  <div style="font-family: monospace; font-size: 9px; color: #666; padding: 1px 0; border-bottom: 1px solid #f0f0f0;">
+                    <span style="color: #999;">${recentIds.length - idx}.</span> 
+                    <span style="color: #0066cc;">${id}</span>
+                  </div>
+                `).join('') : 
+                '<span style="color: #999; font-size: 10px;">No cached posts yet</span>'
+              }
+            </div>
+          </div>
+          
+          ${response.cacheSize > 5 ? `
+            <div style="border-top: 1px solid #ddd; padding-top: 8px;">
+              <div style="cursor: pointer; user-select: none; font-weight: bold; color: #333;" onclick="toggleSection('all-ids')">
+                🗂️ All Cached Posts (${response.cacheSize}) 
+                <span id="all-toggle" style="float: right;">▶</span>
+              </div>
+              <div id="all-ids" style="display: none; margin-top: 5px; max-height: 120px; overflow-y: auto; background: #fff; border: 1px solid #eee; padding: 5px; border-radius: 3px;">
+                ${processedIds.map((id, idx) => `
+                  <div style="font-family: monospace; font-size: 9px; color: #666; padding: 1px 0; border-bottom: 1px solid #f0f0f0;">
+                    <span style="color: #999;">${idx + 1}.</span> 
+                    <span style="color: #0066cc;">${id}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 10px; color: #999;">
+            💡 Click sections to expand/collapse<br>
+            🔄 Auto-closes in 30 seconds
+          </div>
         `;
         
         cacheInfoElement.innerHTML = info;
         cacheInfoElement.style.display = 'block';
         
-        // Auto-hide after 10 seconds
+        // Auto-hide after 30 seconds (longer time for reading)
         setTimeout(() => {
-          cacheInfoElement.style.display = 'none';
-        }, 10000);
+          if (cacheInfoElement.style.display === 'block') {
+            cacheInfoElement.style.display = 'none';
+            cacheInfoButton.textContent = '📊 Show Info';
+          }
+        }, 30000);
       } else {
         showScrapingStatus(`Cache info error: ${response.error}`, 'error');
       }
@@ -410,6 +467,22 @@
       showScrapingStatus('Error getting cache info', 'error');
     }
   }
+
+  // Toggle collapsible sections
+  window.toggleSection = function(sectionId) {
+    const section = document.getElementById(sectionId);
+    const toggle = document.getElementById(sectionId.replace('-ids', '-toggle'));
+    
+    if (section && toggle) {
+      if (section.style.display === 'none') {
+        section.style.display = 'block';
+        toggle.textContent = '▼';
+      } else {
+        section.style.display = 'none';
+        toggle.textContent = '▶';
+      }
+    }
+  };
 
   // Handle clear cache button click
   async function handleClearCache() {

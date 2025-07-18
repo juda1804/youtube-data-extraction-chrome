@@ -643,7 +643,8 @@
         success: true,
         cacheSize: processedPosts.length,
         maxSize: 100,
-        sampleIds: processedPosts.slice(-5), // Last 5 IDs
+        allIds: processedPosts, // All cached IDs
+        sampleIds: processedPosts.slice(-5), // Last 5 IDs for quick view
         oldestId: processedPosts[0] || null,
         newestId: processedPosts[processedPosts.length - 1] || null
       };
