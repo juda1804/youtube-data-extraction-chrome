@@ -1,4 +1,6 @@
 // YouTube to n8n Background Service Worker
+import youtubeDB from './database.js';
+
 (() => {
   'use strict';
 
@@ -48,7 +50,14 @@
   chrome.runtime.onInstalled.addListener(async (details) => {
     if (details.reason === 'install' || details.reason === 'update') {
       await initializeExtension();
+      await youtubeDB.initialize();
     }
+  });
+
+  // Initialize on startup
+  chrome.runtime.onStartup.addListener(async () => {
+    await youtubeDB.initialize();
+    console.log('🔄 Extension startup - IndexedDB initialized');
   });
 
   // Initialize extension configuration
@@ -87,6 +96,15 @@
       return true; // Indicates async response
     } else if (message.action === 'get_cache_info') {
       getCacheInfo().then(sendResponse);
+      return true; // Indicates async response
+    } else if (message.action === 'get_db_stats') {
+      getDBStats().then(sendResponse);
+      return true; // Indicates async response
+    } else if (message.action === 'cleanup_database') {
+      cleanupDatabase(message.daysToKeep).then(sendResponse);
+      return true; // Indicates async response
+    } else if (message.action === 'save_activation_date') {
+      saveActivationDate().then(sendResponse);
       return true; // Indicates async response
     }
   });
@@ -255,12 +273,31 @@
   // César Langreo scraping functionality
   async function scrapeCesarLangreoPosts() {
     try {
+      // Ensure database is initialized
+      await youtubeDB.initialize();
+      
       console.group('🔍 Scraping César Langreo Posts');
       console.log('🌐 Target URL: https://www.youtube.com/c/CésarLangreo/posts');
       
-      // Check if we're in 1-minute mode
-      const config = await chrome.storage.local.get(['scraping_interval_minutes']);
+      // Get configuration and activation date
+      const config = await chrome.storage.local.get([
+        'scraping_interval_minutes', 
+        'auto_scraping_activation_date'
+      ]);
       const isOneMinuteMode = config.scraping_interval_minutes === 1;
+      const activationDate = config.auto_scraping_activation_date ? 
+        new Date(config.auto_scraping_activation_date) : new Date(0);
+      
+      console.log(`📅 Activation date filter: ${activationDate.toISOString()}`);
+      
+      // Create scraping session
+      const sessionId = await youtubeDB.createSession(
+        'auto', 
+        activationDate, 
+        config.scraping_interval_minutes || 60
+      );
+      
+      const startTime = Date.now();
       
       let tab = null;
       
@@ -323,31 +360,84 @@
         console.log(`✅ Extracted ${extractedData.posts.length} posts`);
         console.log('📊 Extracted data:', extractedData);
         
-        // Check for new posts and send to n8n
-        const newPosts = await filterNewPosts(extractedData.posts);
+        // Update session with found posts count
+        await youtubeDB.updateSession(sessionId, {
+          postsFound: extractedData.posts.length
+        });
+        
+        // Filter new posts using IndexedDB
+        const newPosts = await youtubeDB.filterNewPosts(extractedData.posts, activationDate);
+        
+        await youtubeDB.updateSession(sessionId, {
+          postsNew: newPosts.length
+        });
+        
         if (newPosts.length > 0) {
           console.log(`🆕 Found ${newPosts.length} new posts, sending to n8n...`);
+          
+          // Save to IndexedDB first
+          await youtubeDB.savePosts(newPosts, sessionId);
+          
+          // Send to n8n
           const success = await sendScrapedDataToN8n(extractedData);
           
           if (success) {
+            // Mark posts as sent to n8n
+            const postIds = newPosts.map(p => p.id);
+            await youtubeDB.markPostsSentToN8n(postIds);
+            
             await updateLastScrapingTime();
-            await saveProcessedPosts(extractedData.posts);
             console.log('🎉 Scraping completed successfully');
+            
+            // Mark session as completed
+            await youtubeDB.updateSession(sessionId, {
+              status: 'completed',
+              duration: Date.now() - startTime
+            });
+          } else {
+            await youtubeDB.updateSession(sessionId, {
+              status: 'error',
+              error: 'Failed to send to n8n',
+              duration: Date.now() - startTime
+            });
           }
         } else {
           console.log('⏭️ No new posts found');
+          await youtubeDB.updateSession(sessionId, {
+            status: 'completed',
+            duration: Date.now() - startTime
+          });
         }
         
         console.groupEnd();
         return { success: true, postsCount: extractedData.posts.length, newPosts: newPosts.length };
       } else {
         console.warn('⚠️ No posts extracted or extraction failed');
+        await youtubeDB.updateSession(sessionId, {
+          status: 'error',
+          error: 'No posts extracted',
+          duration: Date.now() - startTime
+        });
         console.groupEnd();
         return { success: false, error: 'No posts found or extraction failed' };
       }
       
     } catch (error) {
       console.error('❌ Error scraping César Langreo posts:', error);
+      
+      // Try to update session with error (if sessionId exists)
+      try {
+        if (typeof sessionId !== 'undefined') {
+          await youtubeDB.updateSession(sessionId, {
+            status: 'error',
+            error: error.message,
+            duration: typeof startTime !== 'undefined' ? Date.now() - startTime : 0
+          });
+        }
+      } catch (sessionError) {
+        console.error('Error updating session:', sessionError);
+      }
+      
       console.groupEnd();
       return { success: false, error: error.message };
     }
@@ -503,8 +593,14 @@
     }
   });
 
-  // Filter new posts (avoid duplicates)
+  // ==================== LEGACY FUNCTIONS (DEPRECATED) ====================
+  // These functions are kept for backward compatibility but are no longer used
+  // The extension now uses IndexedDB through youtubeDB instead
+
+  // DEPRECATED: Filter new posts (avoid duplicates) - now handled by youtubeDB.filterNewPosts()
   async function filterNewPosts(posts) {
+    console.warn('⚠️ filterNewPosts() is deprecated, use youtubeDB.filterNewPosts() instead');
+    
     try {
       const stored = await chrome.storage.local.get(['processed_posts']);
       const processedPosts = stored.processed_posts || [];
@@ -529,8 +625,10 @@
     }
   }
 
-  // Save processed post IDs
+  // DEPRECATED: Save processed post IDs - now handled by youtubeDB.savePosts()
   async function saveProcessedPosts(posts) {
+    console.warn('⚠️ saveProcessedPosts() is deprecated, use youtubeDB.savePosts() instead');
+    
     try {
       const stored = await chrome.storage.local.get(['processed_posts']);
       const processedPosts = stored.processed_posts || [];
@@ -612,6 +710,46 @@
       });
     } catch (error) {
       console.error('Error updating last scraping time:', error);
+    }
+  }
+
+  // Get IndexedDB statistics
+  async function getDBStats() {
+    try {
+      await youtubeDB.initialize();
+      const stats = await youtubeDB.getStats();
+      return { success: true, stats };
+    } catch (error) {
+      console.error('Error getting database stats:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Cleanup old database entries
+  async function cleanupDatabase(daysToKeep = 30) {
+    try {
+      await youtubeDB.initialize();
+      const deletedCount = await youtubeDB.cleanupOldData(daysToKeep);
+      console.log(`🧹 Database cleanup completed: ${deletedCount} old posts removed`);
+      return { success: true, deletedCount };
+    } catch (error) {
+      console.error('Error cleaning up database:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Save activation date for filtering old posts
+  async function saveActivationDate() {
+    try {
+      const activationDate = new Date().toISOString();
+      await chrome.storage.local.set({ 
+        auto_scraping_activation_date: activationDate 
+      });
+      console.log(`📅 Activation date saved: ${activationDate}`);
+      return { success: true, activationDate };
+    } catch (error) {
+      console.error('Error saving activation date:', error);
+      return { success: false, error: error.message };
     }
   }
 

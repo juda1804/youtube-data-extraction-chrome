@@ -259,6 +259,14 @@
       const enabled = autoScrapingCheckbox.checked;
       const interval = parseInt(scrapingIntervalInput.value) || 60;
       
+      // Save activation date when enabling auto-scraping
+      if (enabled) {
+        const activationResponse = await chrome.runtime.sendMessage({ action: 'save_activation_date' });
+        if (!activationResponse.success) {
+          console.error('Failed to save activation date:', activationResponse.error);
+        }
+      }
+      
       const response = await chrome.runtime.sendMessage({ 
         action: 'toggle_auto_scraping',
         enabled: enabled,
@@ -267,8 +275,10 @@
 
       if (response.success) {
         const intervalText = formatIntervalText(interval);
-        showScrapingStatus(`Auto-scraping ${enabled ? `enabled (${intervalText})` : 'disabled'}`, 'success');
-        // Note: toggle_auto_scraping already saves the settings, no need for additional update_config
+        const message = enabled ? 
+          `Auto-scraping enabled (${intervalText}) - Only new posts will be processed` :
+          'Auto-scraping disabled';
+        showScrapingStatus(message, 'success');
       } else {
         showScrapingStatus(`Error: ${response.error}`, 'error');
         // Revert checkbox if failed
@@ -394,7 +404,7 @@
       
       cacheInfoButton.textContent = '📊 Hide Info';
       
-      const response = await chrome.runtime.sendMessage({ action: 'get_cache_info' });
+      const response = await chrome.runtime.sendMessage({ action: 'get_db_stats' });
       
       if (response.success) {
         const processedIds = response.allIds || [];
