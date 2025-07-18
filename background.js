@@ -581,8 +581,11 @@ globalThis.youtubeDB = youtubeDB;
           // Save to IndexedDB first
           await youtubeDB.savePosts(newPosts, sessionId);
           
-          // Send to n8n
-          const success = await sendScrapedDataToN8n(extractedData);
+          // Send to n8n (only new posts)
+          const success = await sendScrapedDataToN8n({
+            ...extractedData,
+            posts: newPosts
+          });
           
           if (success) {
             // Mark posts as sent to n8n
@@ -684,8 +687,7 @@ globalThis.youtubeDB = youtubeDB;
           
           if (content || author) {
             // Create deterministic ID based on stable content (not timestamp)
-            const contentForId = `${author}_${content.substring(0, 50)}_${time}`;
-            const postId = `cesar_langreo_${simpleHash(contentForId)}`;
+            const postId = `cesar_langreo_${simpleHash(content)}`;
             
             posts.push({
               id: postId,
