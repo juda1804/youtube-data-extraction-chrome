@@ -420,7 +420,7 @@
           </div>
           
           <div style="border-top: 1px solid #ddd; padding-top: 8px; margin-bottom: 8px;">
-            <div style="cursor: pointer; user-select: none; font-weight: bold; color: #333;" onclick="window.toggleSection('recent-ids')">
+            <div class="toggle-section" data-section="recent-ids" style="cursor: pointer; user-select: none; font-weight: bold; color: #333;">
               📋 Recent Posts (${recentIds.length}) 
               <span id="recent-toggle" style="float: right;">▶</span>
             </div>
@@ -439,7 +439,7 @@
           
           ${response.cacheSize > 5 ? `
             <div style="border-top: 1px solid #ddd; padding-top: 8px;">
-              <div style="cursor: pointer; user-select: none; font-weight: bold; color: #333;" onclick="window.toggleSection('all-ids')">
+              <div class="toggle-section" data-section="all-ids" style="cursor: pointer; user-select: none; font-weight: bold; color: #333;">
                 🗂️ All Cached Posts (${response.cacheSize}) 
                 <span id="all-toggle" style="float: right;">▶</span>
               </div>
@@ -463,6 +463,15 @@
         cacheInfoElement.innerHTML = info;
         cacheInfoElement.style.display = 'block';
         
+        // Add event listeners for collapsible sections (CSP-compliant)
+        const toggleElements = cacheInfoElement.querySelectorAll('.toggle-section');
+        toggleElements.forEach(element => {
+          element.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-section');
+            toggleSection(sectionId);
+          });
+        });
+        
         // Auto-hide after 30 seconds (longer time for reading)
         setTimeout(() => {
           if (cacheInfoElement.style.display === 'block') {
@@ -479,8 +488,8 @@
     }
   }
 
-  // Toggle collapsible sections
-  window.toggleSection = function(sectionId) {
+  // Toggle collapsible sections (CSP-compliant)
+  function toggleSection(sectionId) {
     const section = document.getElementById(sectionId);
     const toggle = document.getElementById(sectionId.replace('-ids', '-toggle'));
     
@@ -493,7 +502,7 @@
         toggle.textContent = '▶';
       }
     }
-  };
+  }
 
   // Handle clear cache button click
   async function handleClearCache() {
