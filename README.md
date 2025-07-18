@@ -87,6 +87,12 @@ A powerful Chrome extension that captures YouTube notifications and scrapes spec
   - Reloading page instead of creating new tabs
   - Reducing resource usage and improving speed
 
+#### Activation Date Filtering
+- When auto-scraping is enabled, current timestamp is saved as "activation date"
+- Only posts newer than activation date are processed
+- Prevents processing of old posts when first enabling auto-scraping
+- Ensures only genuinely new content is sent to n8n
+
 ## 📄 Data Structure
 
 ### Notification Data
@@ -138,9 +144,11 @@ A powerful Chrome extension that captures YouTube notifications and scrapes spec
 
 ### Architecture
 - **Manifest V3** - Latest Chrome extension standard
-- **Service Worker** - Background processing
+- **Service Worker** - Background processing with ES6 modules
+- **IndexedDB** - Unlimited persistent storage with idb library
 - **Content Scripts** - YouTube page interaction
 - **Popup Interface** - User configuration
+- **Session Tracking** - Comprehensive scraping analytics
 
 ### Permissions Required
 - `tabs` - Tab management for scraping
@@ -185,9 +193,18 @@ A powerful Chrome extension that captures YouTube notifications and scrapes spec
 
 ### Debug Commands
 ```javascript
-// In background console
+// In background console (chrome://extensions/ -> Service Worker)
 chrome.storage.local.get(null).then(console.log); // View all settings
 chrome.alarms.getAll().then(console.log); // View active alarms
+
+// IndexedDB debugging
+youtubeDB.getStats().then(console.log); // Database statistics
+youtubeDB.exportData().then(console.log); // Export all data
+youtubeDB.clearAllData(); // Clear database (testing only)
+
+// Test IndexedDB functionality
+quickTest(); // Run basic functionality test
+runAllTests(); // Run comprehensive test suite
 ```
 
 ## 📝 Configuration Examples
