@@ -1,5 +1,6 @@
 // YouTube to n8n Background Service Worker
 import youtubeDB from './database.js';
+import { createPostId, extractImageUrls } from './utils.js';
 
 // Simple testing functions directly in background for debugging
 async function quickTest() {
@@ -166,7 +167,7 @@ async function testCacheSummary() {
     
     // Test the getDBStats function
     console.log('🔍 Testing getDBStats() function...');
-    const dbStats = await getDBStats();
+    const dbStats = await youtubeDB.getStats();
     
     console.log('📊 getDBStats() result:');
     console.log(`  ✓ success: ${dbStats.success}`);
@@ -216,11 +217,6 @@ globalThis.youtubeDB = youtubeDB;
     return new Date(utc + (colombiaOffset * 60000));
   }
 
-  function toColombiaTime(date) {
-    const colombiaOffset = -5 * 60; // -5 horas en minutos
-    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-    return new Date(utc + (colombiaOffset * 60000));
-  }
 
   // Configuration keys
   const STORAGE_KEYS = {
@@ -693,16 +689,6 @@ globalThis.youtubeDB = youtubeDB;
   function extractPostsData() {
     const posts = [];
     
-    // Simple hash function for consistent IDs
-    function simpleHash(str) {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-      }
-      return Math.abs(hash).toString(36);
-    }
     
     try {
       // Wait for content to be fully loaded
@@ -715,20 +701,17 @@ globalThis.youtubeDB = youtubeDB;
           const contentElement = post.querySelector('#content-text, .ytd-expander #content');
           const timeElement = post.querySelector('#published-time-text a, #published-time-text');
           const likesElement = post.querySelector('#vote-count-middle, [aria-label*="like"]');
-          const imageElements = post.querySelectorAll('img[src*="yt"], img[src*="google"]');
           
           const author = authorElement ? authorElement.textContent.trim() : 'César Langreo';
           const content = contentElement ? contentElement.textContent.trim() : '';
           const time = timeElement ? timeElement.textContent.trim() : '';
           const likes = likesElement ? likesElement.textContent.trim() : '0';
-          const images = Array.from(imageElements)
-            .map(img => img.src)
-            .filter(src => src && !src.includes('data:') && src.includes('http'));
+          const images = extractImageUrls(post);
           
           if (content || author) {
             // Create deterministic ID based on stable content (not timestamp)
             console.log('🔍 Content:', content);
-            const postId = `cesar_langreo_${simpleHash(content)}`;
+            const postId = createPostId(author, content);
             console.log('🔍 Post ID:', postId);
 
             
