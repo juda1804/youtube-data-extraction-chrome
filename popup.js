@@ -588,11 +588,15 @@
       
       const response = await chrome.runtime.sendMessage({ action: 'save_activation_date' });
       
-      if (response.success) {
+      console.log('📅 Save activation date response:', response);
+      
+      if (response && response.success) {
         updateActivationDate(response.activationDate);
         showScrapingStatus('✅ Activation date updated to current time (Colombia timezone)', 'success');
       } else {
-        showScrapingStatus(`❌ Error updating activation date: ${response.error}`, 'error');
+        const errorMsg = response?.error || 'Unknown error';
+        console.error('❌ Save activation date failed:', response);
+        showScrapingStatus(`❌ Error updating activation date: ${errorMsg}`, 'error');
       }
     } catch (error) {
       console.error('Error updating activation date:', error);
@@ -615,11 +619,15 @@
       
       const response = await chrome.runtime.sendMessage({ action: 'reset_activation_date' });
       
-      if (response.success) {
+      console.log('📅 Reset activation date response:', response);
+      
+      if (response && response.success) {
         updateActivationDate(null);
         showScrapingStatus('✅ Activation date reset - all posts will be processed', 'success');
       } else {
-        showScrapingStatus(`❌ Error resetting activation date: ${response.error}`, 'error');
+        const errorMsg = response?.error || 'Unknown error';
+        console.error('❌ Reset activation date failed:', response);
+        showScrapingStatus(`❌ Error resetting activation date: ${errorMsg}`, 'error');
       }
     } catch (error) {
       console.error('Error resetting activation date:', error);

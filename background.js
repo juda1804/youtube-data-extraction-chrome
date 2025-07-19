@@ -324,6 +324,7 @@ function toColombiaTime(date) {
       return true; // Indicates async response
     } else if (message.action === 'save_activation_date') {
       saveActivationDate().then(sendResponse);
+      return true; // Indicates async response
     } else if (message.action === 'reset_activation_date') {
       resetActivationDate().then(sendResponse);
       return true; // Indicates async response
