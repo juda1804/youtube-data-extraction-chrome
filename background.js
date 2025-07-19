@@ -204,23 +204,23 @@ globalThis.testCacheSummary = testCacheSummary;
 // Expose for debugging in service worker console
 globalThis.youtubeDB = youtubeDB;
 
-// Timezone utilities for Colombia (UTC-5)
-function getNowInColombia() {
-  const now = new Date();
-  // Colombia está en UTC-5 (no cambia por horario de verano)
-  const colombiaOffset = -5 * 60; // -5 horas en minutos
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (colombiaOffset * 60000));
-}
-
-function toColombiaTime(date) {
-  const colombiaOffset = -5 * 60; // -5 horas en minutos
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  return new Date(utc + (colombiaOffset * 60000));
-}
-
 (() => {
   'use strict';
+
+  // Timezone utilities for Colombia (UTC-5)
+  function getNowInColombia() {
+    const now = new Date();
+    // Colombia está en UTC-5 (no cambia por horario de verano)
+    const colombiaOffset = -5 * 60; // -5 horas en minutos
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (colombiaOffset * 60000));
+  }
+
+  function toColombiaTime(date) {
+    const colombiaOffset = -5 * 60; // -5 horas en minutos
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    return new Date(utc + (colombiaOffset * 60000));
+  }
 
   // Configuration keys
   const STORAGE_KEYS = {
@@ -323,10 +323,26 @@ function toColombiaTime(date) {
       cleanupDatabase(message.daysToKeep).then(sendResponse);
       return true; // Indicates async response
     } else if (message.action === 'save_activation_date') {
-      saveActivationDate().then(sendResponse);
+      saveActivationDate()
+        .then(response => {
+          console.log('📅 saveActivationDate response:', response);
+          sendResponse(response);
+        })
+        .catch(error => {
+          console.error('❌ saveActivationDate error:', error);
+          sendResponse({ success: false, error: error.message || 'Unknown error' });
+        });
       return true; // Indicates async response
     } else if (message.action === 'reset_activation_date') {
-      resetActivationDate().then(sendResponse);
+      resetActivationDate()
+        .then(response => {
+          console.log('📅 resetActivationDate response:', response);
+          sendResponse(response);
+        })
+        .catch(error => {
+          console.error('❌ resetActivationDate error:', error);
+          sendResponse({ success: false, error: error.message || 'Unknown error' });
+        });
       return true; // Indicates async response
     }
   });
@@ -998,15 +1014,25 @@ function toColombiaTime(date) {
 
   // Save activation date for filtering old posts (Colombia timezone)
   async function saveActivationDate() {
+    console.log('🔄 saveActivationDate called');
     try {
+      console.log('🕒 Getting Colombia time...');
       const activationDate = getNowInColombia().toISOString();
+      console.log('📅 Generated activation date:', activationDate);
+      
+      console.log('💾 Saving to storage...');
       await chrome.storage.local.set({ 
         auto_scraping_activation_date: activationDate 
       });
+      console.log('✅ Storage save completed');
+      
       console.log(`📅 Activation date saved (Colombia timezone): ${activationDate}`);
-      return { success: true, activationDate };
+      const result = { success: true, activationDate };
+      console.log('🔄 Returning result:', result);
+      return result;
     } catch (error) {
-      console.error('Error saving activation date:', error);
+      console.error('❌ Error in saveActivationDate:', error);
+      console.error('❌ Error stack:', error.stack);
       return { success: false, error: error.message };
     }
   }
