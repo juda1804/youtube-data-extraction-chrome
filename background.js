@@ -1,6 +1,6 @@
 // YouTube to n8n Background Service Worker
 import youtubeDB from './database.js';
-import { createPostId, extractImageUrls } from './utils.js';
+import { createPostId, extractImageUrls, getNowInColombia } from './utils.js';
 
 // Simple testing functions directly in background for debugging
 async function quickTest() {
@@ -999,9 +999,10 @@ globalThis.youtubeDB = youtubeDB;
   async function saveActivationDate() {
     console.log('🔄 saveActivationDate called');
     try {
-      console.log('🕒 Getting Colombia time...');
-      const activationDate = getNowInColombia().toISOString();
-      console.log('📅 Generated activation date:', activationDate);
+      console.log('🕒 Getting current time...');
+      const activationDate = new Date().toISOString();
+      const colombiaTime = getNowInColombia().toISOString().replace('T', ' ').slice(0, 19) + ' (COT)';
+      console.log('📅 Generated activation date (Colombia):', colombiaTime);
       
       console.log('💾 Saving to storage...');
       await chrome.storage.local.set({ 
@@ -1009,7 +1010,7 @@ globalThis.youtubeDB = youtubeDB;
       });
       console.log('✅ Storage save completed');
       
-      console.log(`📅 Activation date saved (Colombia timezone): ${activationDate}`);
+      console.log(`📅 Activation date saved (Colombia): ${colombiaTime}`);
       const result = { success: true, activationDate };
       console.log('🔄 Returning result:', result);
       return result;

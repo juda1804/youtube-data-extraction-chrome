@@ -126,7 +126,8 @@ class YouTubeDB {
     
     const newPosts = [];
     
-    console.log(`🔍 Filtering ${posts.length} posts against activation date (Colombia timezone): ${activationDate.toISOString()}`);
+    const activationColombia = this.toColombiaTime(activationDate).toISOString().replace('T', ' ').slice(0, 19) + ' (COT)';
+    console.log(`🔍 Filtering ${posts.length} posts against activation date (Colombia): ${activationColombia}`);
     
     for (const post of posts) {
       // Check if already processed
@@ -143,7 +144,7 @@ class YouTubeDB {
         newPosts.push(post);
         console.log(`🆕 New post: ${post.id} (${post.publishedTime})`);
       } else {
-        console.log(`📅 Post too old: ${post.id} (${post.publishedTime}) vs ${activationDate.toISOString()} (Colombia timezone)`);
+        console.log(`📅 Post too old: ${post.id} (${post.publishedTime}) vs ${activationColombia}`);
       }
     }
     
@@ -203,8 +204,8 @@ class YouTubeDB {
   }
 
   parseYouTubeDate(timeText) {
-    // Use Colombia timezone instead of system timezone
-    const now = this.getNowInColombia();
+    // Parse dates in UTC for consistent comparison with activation date
+    const now = new Date();
     const text = timeText.toLowerCase();
     
     // Spanish patterns
