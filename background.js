@@ -229,7 +229,8 @@ function toColombiaTime(date) {
     LAST_SUCCESS: 'last_success_timestamp',
     AUTO_SCRAPING: 'auto_scraping_enabled',
     SCRAPING_INTERVAL: 'scraping_interval_minutes',
-    LAST_SCRAPING: 'last_scraping_time'
+    LAST_SCRAPING: 'last_scraping_time',
+    ACTIVATION_DATE: 'auto_scraping_activation_date'
   };
 
   // Default configuration
@@ -323,6 +324,8 @@ function toColombiaTime(date) {
       return true; // Indicates async response
     } else if (message.action === 'save_activation_date') {
       saveActivationDate().then(sendResponse);
+    } else if (message.action === 'reset_activation_date') {
+      resetActivationDate().then(sendResponse);
       return true; // Indicates async response
     }
   });
@@ -1003,6 +1006,18 @@ function toColombiaTime(date) {
       return { success: true, activationDate };
     } catch (error) {
       console.error('Error saving activation date:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Reset activation date (remove filter)
+  async function resetActivationDate() {
+    try {
+      await chrome.storage.local.remove('auto_scraping_activation_date');
+      console.log('📅 Activation date reset - all posts will be processed');
+      return { success: true };
+    } catch (error) {
+      console.error('Error resetting activation date:', error);
       return { success: false, error: error.message };
     }
   }

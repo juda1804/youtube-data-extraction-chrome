@@ -255,6 +255,27 @@
             </div>
         </div>
 
+        <!-- Activation Date Section -->
+        <div class="form-group" id="activation-date-group" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef;">
+            <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #495057;">📅 Activation Date Filter</h4>
+            <div style="font-size: 11px; color: #6c757d; margin-bottom: 10px;">
+                Only posts newer than this date will be processed
+            </div>
+            
+            <div id="current-activation-date" style="padding: 6px 8px; background: #fff; border: 1px solid #ddd; border-radius: 3px; font-size: 11px; color: #333; margin-bottom: 8px; font-family: monospace;">
+                Not set
+            </div>
+            
+            <div style="display: flex; gap: 5px;">
+                <button id="update-activation-btn" style="flex: 1; padding: 6px; font-size: 11px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                    🔄 Set to Now
+                </button>
+                <button id="reset-activation-btn" style="flex: 1; padding: 6px; font-size: 11px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                    🗑️ Reset
+                </button>
+            </div>
+        </div>
+
         <div id="scraping-status" style="display: none; padding: 8px; border-radius: 4px; font-size: 12px; margin-top: 10px;"></div>
         
         <div class="cache-controls" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">

@@ -26,6 +26,11 @@
   const clearCacheButton = document.getElementById('clear-cache-btn');
   const cacheInfoElement = document.getElementById('cache-info');
 
+  // Activation date elements
+  const currentActivationDateElement = document.getElementById('current-activation-date');
+  const updateActivationButton = document.getElementById('update-activation-btn');
+  const resetActivationButton = document.getElementById('reset-activation-btn');
+
   // Configuration keys (must match background.js)
   const STORAGE_KEYS = {
     WEBHOOK_URL: 'n8n_webhook_url',
@@ -33,7 +38,8 @@
     LAST_SUCCESS: 'last_success_timestamp',
     AUTO_SCRAPING: 'auto_scraping_enabled',
     SCRAPING_INTERVAL: 'scraping_interval_minutes',
-    LAST_SCRAPING: 'last_scraping_time'
+    LAST_SCRAPING: 'last_scraping_time',
+    ACTIVATION_DATE: 'auto_scraping_activation_date'
   };
 
   // Initialize popup
@@ -55,6 +61,7 @@
       updateStatus(response);
       updateLastSuccess(response[STORAGE_KEYS.LAST_SUCCESS]);
       updateLastScraping(response[STORAGE_KEYS.LAST_SCRAPING]);
+      updateActivationDate(response[STORAGE_KEYS.ACTIVATION_DATE]);
       updateIntervalVisibility();
     } catch (error) {
       console.error('Error loading configuration:', error);
@@ -71,6 +78,8 @@
     scrapingIntervalInput.addEventListener('change', handleIntervalChange);
     cacheInfoButton.addEventListener('click', handleCacheInfo);
     clearCacheButton.addEventListener('click', handleClearCache);
+    updateActivationButton.addEventListener('click', handleUpdateActivation);
+    resetActivationButton.addEventListener('click', handleResetActivation);
     
     // Enable/disable buttons based on webhook URL
     webhookUrlInput.addEventListener('input', () => {
@@ -528,6 +537,96 @@
     } catch (error) {
       console.error('Error clearing cache:', error);
       showScrapingStatus('Error clearing cache', 'error');
+    }
+  }
+
+  // Update activation date display
+  function updateActivationDate(timestamp) {
+    if (!timestamp) {
+      currentActivationDateElement.textContent = 'Not set';
+      currentActivationDateElement.style.color = '#dc3545';
+      return;
+    }
+    
+    try {
+      const date = new Date(timestamp);
+      // Format for Colombia timezone display
+      const colombiaDate = formatDateForColombia(date);
+      currentActivationDateElement.textContent = colombiaDate;
+      currentActivationDateElement.style.color = '#333';
+    } catch (error) {
+      currentActivationDateElement.textContent = 'Invalid date';
+      currentActivationDateElement.style.color = '#dc3545';
+    }
+  }
+
+  // Format date for Colombia timezone display
+  function formatDateForColombia(date) {
+    // Convert to Colombia timezone (UTC-5)
+    const colombiaOffset = -5 * 60; // -5 hours in minutes
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    const colombiaTime = new Date(utc + (colombiaOffset * 60000));
+    
+    const options = {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
+    
+    return colombiaTime.toISOString().replace('T', ' ').slice(0, 19) + ' (COT)';
+  }
+
+  // Handle update activation date button click
+  async function handleUpdateActivation() {
+    try {
+      updateActivationButton.disabled = true;
+      updateActivationButton.textContent = '⏳ Updating...';
+      
+      const response = await chrome.runtime.sendMessage({ action: 'save_activation_date' });
+      
+      if (response.success) {
+        updateActivationDate(response.activationDate);
+        showScrapingStatus('✅ Activation date updated to current time (Colombia timezone)', 'success');
+      } else {
+        showScrapingStatus(`❌ Error updating activation date: ${response.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error updating activation date:', error);
+      showScrapingStatus('❌ Error updating activation date', 'error');
+    } finally {
+      updateActivationButton.disabled = false;
+      updateActivationButton.textContent = '🔄 Set to Now';
+    }
+  }
+
+  // Handle reset activation date button click
+  async function handleResetActivation() {
+    try {
+      if (!confirm('🗑️ Reset activation date?\n\nThis will clear the filter and allow all posts to be processed on next scraping.')) {
+        return;
+      }
+      
+      resetActivationButton.disabled = true;
+      resetActivationButton.textContent = '⏳ Resetting...';
+      
+      const response = await chrome.runtime.sendMessage({ action: 'reset_activation_date' });
+      
+      if (response.success) {
+        updateActivationDate(null);
+        showScrapingStatus('✅ Activation date reset - all posts will be processed', 'success');
+      } else {
+        showScrapingStatus(`❌ Error resetting activation date: ${response.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error resetting activation date:', error);
+      showScrapingStatus('❌ Error resetting activation date', 'error');
+    } finally {
+      resetActivationButton.disabled = false;
+      resetActivationButton.textContent = '🗑️ Reset';
     }
   }
 
