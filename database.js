@@ -126,7 +126,7 @@ class YouTubeDB {
     
     const newPosts = [];
     
-    console.log(`🔍 Filtering ${posts.length} posts against activation date: ${activationDate.toISOString()}`);
+    console.log(`🔍 Filtering ${posts.length} posts against activation date (Colombia timezone): ${activationDate.toISOString()}`);
     
     for (const post of posts) {
       // Check if already processed
@@ -143,7 +143,7 @@ class YouTubeDB {
         newPosts.push(post);
         console.log(`🆕 New post: ${post.id} (${post.publishedTime})`);
       } else {
-        console.log(`📅 Post too old: ${post.id} (${post.publishedTime}) vs ${activationDate.toISOString()}`);
+        console.log(`📅 Post too old: ${post.id} (${post.publishedTime}) vs ${activationDate.toISOString()} (Colombia timezone)`);
       }
     }
     
@@ -187,8 +187,24 @@ class YouTubeDB {
 
   // ==================== UTILITY METHODS ====================
 
-  parseYouTubeDate(timeText) {
+  // Timezone utilities for Colombia (UTC-5)
+  getNowInColombia() {
     const now = new Date();
+    // Colombia está en UTC-5 (no cambia por horario de verano)
+    const colombiaOffset = -5 * 60; // -5 horas en minutos
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (colombiaOffset * 60000));
+  }
+
+  toColombiaTime(date) {
+    const colombiaOffset = -5 * 60; // -5 horas en minutos
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    return new Date(utc + (colombiaOffset * 60000));
+  }
+
+  parseYouTubeDate(timeText) {
+    // Use Colombia timezone instead of system timezone
+    const now = this.getNowInColombia();
     const text = timeText.toLowerCase();
     
     // Spanish patterns
@@ -235,7 +251,7 @@ class YouTubeDB {
       return new Date(now - months * 30 * 24 * 60 * 60 * 1000);
     }
     
-    console.warn(`⚠️ Could not parse date: "${timeText}", defaulting to now`);
+    console.warn(`⚠️ Could not parse date: "${timeText}", defaulting to now (Colombia timezone)`);
     return now; // Default to now if can't parse
   }
 

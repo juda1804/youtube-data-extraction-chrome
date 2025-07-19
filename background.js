@@ -204,6 +204,21 @@ globalThis.testCacheSummary = testCacheSummary;
 // Expose for debugging in service worker console
 globalThis.youtubeDB = youtubeDB;
 
+// Timezone utilities for Colombia (UTC-5)
+function getNowInColombia() {
+  const now = new Date();
+  // Colombia está en UTC-5 (no cambia por horario de verano)
+  const colombiaOffset = -5 * 60; // -5 horas en minutos
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (colombiaOffset * 60000));
+}
+
+function toColombiaTime(date) {
+  const colombiaOffset = -5 * 60; // -5 horas en minutos
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  return new Date(utc + (colombiaOffset * 60000));
+}
+
 (() => {
   'use strict';
 
@@ -488,10 +503,11 @@ globalThis.youtubeDB = youtubeDB;
         'auto_scraping_activation_date'
       ]);
       const isOneMinuteMode = config.scraping_interval_minutes === 1;
+      // Read activation date (already saved in Colombia timezone)
       const activationDate = config.auto_scraping_activation_date ? 
         new Date(config.auto_scraping_activation_date) : new Date(0);
       
-      console.log(`📅 Activation date filter: ${activationDate.toISOString()}`);
+      console.log(`📅 Activation date filter (Colombia timezone): ${activationDate.toISOString()}`);
       
       // Create scraping session
       const sessionId = await youtubeDB.createSession(
@@ -548,6 +564,8 @@ globalThis.youtubeDB = youtubeDB;
         target: { tabId: tab.id },
         function: extractPostsData
       });
+
+      console.log('🔍 Results:', results);
       
       // Close tab only if NOT in 1-minute mode
       if (!isOneMinuteMode) {
@@ -558,6 +576,8 @@ globalThis.youtubeDB = youtubeDB;
       }
       
       const extractedData = results[0]?.result;
+
+      console.log('🔍 Extracted data:', extractedData);
       
       if (extractedData && extractedData.posts.length > 0) {
         console.log(`✅ Extracted ${extractedData.posts.length} posts`);
@@ -687,7 +707,10 @@ globalThis.youtubeDB = youtubeDB;
           
           if (content || author) {
             // Create deterministic ID based on stable content (not timestamp)
+            console.log('🔍 Content:', content);
             const postId = `cesar_langreo_${simpleHash(content)}`;
+            console.log('🔍 Post ID:', postId);
+
             
             posts.push({
               id: postId,
@@ -969,14 +992,14 @@ globalThis.youtubeDB = youtubeDB;
     }
   }
 
-  // Save activation date for filtering old posts
+  // Save activation date for filtering old posts (Colombia timezone)
   async function saveActivationDate() {
     try {
-      const activationDate = new Date().toISOString();
+      const activationDate = getNowInColombia().toISOString();
       await chrome.storage.local.set({ 
         auto_scraping_activation_date: activationDate 
       });
-      console.log(`📅 Activation date saved: ${activationDate}`);
+      console.log(`📅 Activation date saved (Colombia timezone): ${activationDate}`);
       return { success: true, activationDate };
     } catch (error) {
       console.error('Error saving activation date:', error);
