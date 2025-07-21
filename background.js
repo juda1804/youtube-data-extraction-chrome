@@ -536,41 +536,12 @@ globalThis.youtubeDB = youtubeDB;
       
       let tab = null;
       
-      if (isOneMinuteMode) {
-        console.log('⚡ 1-minute mode: Reusing existing tab');
-        
-        // Try to use saved tab
-        if (cesarLangreoTabId && await tabExists(cesarLangreoTabId)) {
-          tab = await chrome.tabs.get(cesarLangreoTabId);
-          console.log('🔄 Reloading existing tab');
-          await chrome.tabs.reload(tab.id);
-          await chrome.tabs.update(tab.id, { active: false });
-        } else {
-          // Look for existing tab by URL
-          tab = await findExistingTab('https://www.youtube.com/c/CésarLangreo/posts');
-          if (tab) {
-            console.log('🔍 Found existing tab by URL');
-            cesarLangreoTabId = tab.id;
-            await chrome.tabs.reload(tab.id);
-            await chrome.tabs.update(tab.id, { active: false });
-          } else {
-            // Create new tab (first time)
-            console.log('🆕 Creating new persistent tab');
-            tab = await chrome.tabs.create({
-              url: 'https://www.youtube.com/c/CésarLangreo/posts',
-              active: false
-            });
-            cesarLangreoTabId = tab.id;
-          }
-        }
-      } else {
-        // Normal mode: create temporary tab
-        console.log('🔄 Normal mode: Creating temporary tab');
-        tab = await chrome.tabs.create({
-          url: 'https://www.youtube.com/c/CésarLangreo/posts',
-          active: false
-        });
-      }
+      // Normal mode: create temporary tab
+      console.log('🔄 Normal mode: Creating temporary tab');
+      tab = await chrome.tabs.create({
+        url: 'https://www.youtube.com/c/CésarLangreo/posts',
+        active: false
+      });
       
       console.log('⏳ Waiting for page to load...');
       await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds for loading
@@ -583,13 +554,8 @@ globalThis.youtubeDB = youtubeDB;
 
       console.log('🔍 Results:', results);
       
-      // Close tab only if NOT in 1-minute mode
-      if (!isOneMinuteMode) {
-        await chrome.tabs.remove(tab.id);
-        console.log('🗑️ Tab closed');
-      } else {
-        console.log('📌 Tab kept open for reuse');
-      }
+      await chrome.tabs.remove(tab.id);
+      console.log('🗑️ Tab closed');
       
       const extractedData = results[0]?.result;
 
